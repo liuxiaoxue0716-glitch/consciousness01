@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>实证闪卡全集</title>
+    <style>
+        :root {
+            --paper-bg: #FAF6F0;
+            --ink: #2C1F1A;
+            --zen-sage: #7A8B7B;
+            --warm-gold: #D4A325;
+            --sunlight: #FFF9EB;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body { 
+            background-color: #6A737D; 
+            margin: 0; padding: 0;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh;
+            font-family: 'Noto Serif SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', serif;
+            overflow: hidden;
+        }
+
+        /* 大屏画布大容器 */
+        .presentation-canvas {
+            position: relative;
+            width: 1280px;
+            height: 720px;
+            background: radial-gradient(circle at 50% 50%, #FDFBF7 0%, #F3ECE3 100%);
+            box-shadow: 0 40px 90px rgba(0,0,0,0.25);
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* 唯美光晕渲染线 */
+        .zen-glow {
+            position: absolute;
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(255, 249, 235, 0.6) 0%, transparent 70%);
+            top: -150px; right: -100px;
+            pointer-events: none; z-index: 1;
+        }
+
+        /* 页面样式 */
+        .slide-page {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            padding: 60px 100px;
+            display: none;
+            flex-direction: column;
+            z-index: 5;
+        }
+
+        .slide-page.active { display: flex; }
+
+        /* 封面 */
+        .cover-page { 
+            justify-content: center; 
+            align-items: center; 
+            text-align: center; 
+        }
+        
+        .cover-title { 
+            font-size: 68px; 
+            color: var(--ink); 
+            margin-bottom: 25px;
+            letter-spacing: 4px;
+            font-weight: 600;
+        }
+        
+        .cover-subtitle { 
+            font-size: 24px; 
+            letter-spacing: 8px; 
+            color: var(--zen-sage); 
+            font-weight: 300; 
+            margin-bottom: 60px;
+        }
+
+        /* 页眉与页脚 */
+        .page-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-bottom: 1px dashed rgba(44, 31, 26, 0.15); 
+            padding-bottom: 15px; 
+            margin-bottom: 20px; 
+        }
+        .header-title { font-size: 20px; color: var(--zen-sage); letter-spacing: 2px; font-weight: 600; }
+        .header-index { font-size: 15px; color: #9A8E86; }
+
+        .page-footer { 
+            position: absolute; 
+            bottom: 40px; 
+            left: 100px; 
+            right: 100px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            z-index: 10; 
+        }
+        .footer-tag { font-size: 13px; color: #AFA49C; letter-spacing: 1px; }
+
+        /* 居中核心卡片盒 */
+        .center-wrapper { 
+            flex-grow: 1; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            width: 100%; 
+        }
+        
+        .interactive-flashcard {
+            background: #FFFFFF;
+            width: 920px;
+            min-height: 380px;
+            padding: 50px 60px;
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            box-shadow: 0 15px 35px rgba(44, 31, 26, 0.04);
+            border: 1px solid rgba(230, 223, 214, 0.8);
+            border-radius: 2px;
+            transition: transform 0.25s ease, border-color 0.25s ease;
+        }
+
+        .interactive-flashcard:hover { 
+            transform: translateY(-2px); 
+            border-color: var(--warm-gold); 
+        }
+
+        /* 和纸胶带修饰线 */
+        .tape-deco {
+            position: absolute;
+            height: 30px; width: 120px;
+            background: rgba(212, 163, 37, 0.18);
+            top: -12px; left: 50%;
+            transform: translateX(-50%) rotate(1deg);
+            z-index: 10;
+            box-shadow: 1px 1px 2px rgba(0,0,0,0.02);
+        }
+
+        .q-indicator { 
+            font-size: 14px; 
+            color: var(--zen-sage); 
+            margin-bottom: 20px; 
+            letter-spacing: 6px;
+            font-weight: 600;
+        }
+        
+        .question-box { 
+            font-size: 32px; 
+            line-height: 1.5; 
+            font-weight: 600; 
+            color: var(--ink);
+            transition: color 0.3s ease, font-size 0.3s ease;
+        }
+
+        /* 答案区交互动画 */
+        .answer-box {
+            margin-top: 35px;
+            padding: 20px 35px;
+            background-color: var(--sunlight);
+            border-left: 3px solid var(--warm-gold);
+            font-size: 24px;
+            color: #4A3B32;
+            line-height: 1.6;
+            opacity: 0;
+            transform: translateY(15px);
+            transition: all 0.45s cubic-bezier(0.215, 0.610, 0.355, 1);
+            width: 100%;
+            text-align: left;
+            border-radius: 2px;
+        }
+
+        .interactive-flashcard.revealed .question-box { 
+            color: var(--zen-sage); 
+            font-size: 24px; 
+        }
+        
+        .interactive-flashcard.revealed .answer-box { 
+            opacity: 1; 
+            transform: translateY(0); 
+        }
+
+        /* 翻页按钮 */
+        .action-btn {
+            background: #FFFFFF; 
+            border: 1px solid #DCD4CC;
+            padding: 8px 22px; 
+            border-radius: 20px;
+            cursor: pointer; 
+            color: var(--ink);
+            font-size: 14px;
+            transition: all 0.25s;
+            outline: none;
+        }
+        .action-btn:hover { 
+            background: var(--zen-sage); 
+            color: white; 
+            border-color: var(--zen-sage); 
+        }
+
+        .hint-text { 
+            font-size: 13px; 
+            color: var(--warm-gold); 
+            margin-top: 25px; 
+            opacity: 0.7; 
+            font-style: italic; 
+        }
+        .interactive-flashcard.revealed .hint-text { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="presentation-canvas">
+    <div class="zen-glow"></div>
+
+    <div class="slide-page cover-page active" id="slide-0">
+        <h1 class="cover-title">实证闪卡全集</h1>
+        <h2 class="cover-subtitle">一页一题 · 交互自修册</h2>
+        <div style="margin-top: 30px;">
+            <button class="action-btn" onclick="nextSlide()" style="padding: 12px 40px; font-size: 16px; border-radius: 24px;">开启参究 →</button>
+        </div>
+        <p style="position: absolute; bottom: 50px; color: #AFA49C; font-size: 13px; letter-spacing: 1px;">点击卡片显现内容 | 支持键盘左右键(← / →)翻页</p>
+    </div>
+
+    <div id="flashcards-anchor"></div>
+
+    <div class="page-footer">
+        <div class="footer-tag">静谧内观 · 如实照见——303-4 8组🪷</div>
+        <div style="display: flex; gap: 12px;">
+            <button class="action-btn" onclick="prevSlide()">← 上一页</button>
+            <button class="action-btn" onclick="nextSlide()">下一页 →</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 注入全量卡片数据
+    const cardCollection = [["根据资料，一切痛苦的根本来源是什么？", "我执（对“我”的执着）。"], ["“俱生我执”是指什么时间产生的执着？", "生下来就有的、本来就在的执着。"], ["人与自己的名字、身份、记忆绑定在一起，是由大脑里的什么导致的？", "程序设定（或程式设计）。"], ["解决痛苦的方法是杀掉肉体吗？", "不是，这被认为是极度愚蠢且病态的方法。"], ["在禅修清明无念的状态下，那个“感受一切的”是什么？", "我的觉（觉性）。"], ["资料中用哪种科学概念来类比我执中最小能量体之间的关联？", "量子纠缠。"], ["哪两个层次的执着构成了对他人的执着？", "俱生我执与遍计所执。"], ["“遍计所执”的典型特征是什么？", "后天形成的，通过资料库（学习、经验）产生的。"],  ["小乘修行中“出家”的本质意义是什么？", "通过切断与外界的联系，不再累积和粘附我执。"], ["大乘修行者处理我执的核心逻辑是什么？", "将他人视作与自己一样重要，通过利他来减少自我。"], ["为什么建议修密乘法之前需要具足福德资粮？", "因为闭关需要经济支持、处理好家人关系及拥有充足时间。"], ["在六道轮回中，是否存在一个恒常不变的“我”作为主体？", "不存在，那只是一团不断抓取周围因果业力的能量。"], ["死后再次投入轮回的动力是什么？", "未被破除的“俱生我执”。"], ["死亡刹那回归“觉性之海”的障碍是什么？", "俱生我执会瞬间跳出来抓取最近的因果能量。"], ["为什么说“这辈子的你”和“上辈子的你”不是同一个人？", "因为每次投胎都是我执在资料库中抓不同能量组建的结果。"], ["“我执”可以被定义为什么样的能量组合？", "习惯。"], ["修行如果离开哪个根本，效率就会降低？", "破除我执。"], ["佛教中“无我”或“空”的真实含义是什么？", "没有一个长存不变、单一个体的自我。"], ["资料中提到“阿弥陀佛”仍然存在并说法，这证明了什么？", "佛教并非否定生命体的存在，而是否定对生命体的执着。"], ["执着的形式：认同", "定义：将身体、情绪、念头、身份当成“我”或“我的一部分”。"], ["执着的形式：占有", "定义：将人物关系、知识、经验、境界当成“我的”（我所）。"], ["执着的形式：控制", "定义：希望外境、他人、身体按自己的意志运作。"], ["执着的形式：延续", "定义：希望快乐、爱、成功、健康等状态长久不变（常执）。"], ["执着的形式：排斥", "定义：不想要痛苦、失败、批评或衰老（相当于“嗔”）。"], ["执着的形式：相信", "定义：相信无常不实的东西能带给自己安全感和价值感。"], ["为什么单纯“观想”捐钱的功德不如实际布施？", "因为只有实际行动才能触碰到并磨掉内在真实的我执。"], ["修行中，当“菩提心”这种习惯增多时，什么会减少？", "我执这种习惯。"], ["为什么布施时不应过度用力或强求赞叹？", "过度用力是在用“我执”打“我执”，容易导致退转。"], ["“我执”四个层次：1. 外", "内容：我的东西、我的亲人。效果：通过发现其无常来减少烦恼。"], ["“我执”四个层次：2. 内", "内容：大脑里的资料库。执着点：执着资料库不能变，将其视为常态。"], ["“我执”四个层次：3. 密", "内容：身体是我。难度：极难破除（如道理都懂但难舍手指）。"], ["“我执”四个层次：4. 极密", "内容：俱生我执。状态：明知细胞记忆非我，但仍有一种“我的感觉”。"], ["现代科学将“极密我执”关联到大脑的哪个区域？", "预设模式网络 (DMN / Default Mode Network)。"], ["预设模式网络 (DMN) 在什么状态下最活跃？", "大脑无任务、闲逛、安静的时候。"], ["预设模式网络 (DMN) 的核心功能是什么？", "编织故事、想过去未来、评估信息是否与“自我”有关。"], ["“名色分别智”在修行中的主要作用是什么？", "它是破除我见与我执的基础。"], ["“我见”通常指代哪种程度的我执？", "比较深层的执着，类似于俱生我执。"], ["为什么在修行初期可以利用“多巴胺”？", "利用期待的喜悦激励自己进入状态，是“以执破执”的过渡。"],  ["看到车子被刮像“肉被割”一样疼，反映了什么？", "没有受过训练的心将自我延伸到了外物上。"], ["“人肉瀑布”这个词在资料中形容什么？", "处于不断死亡、凋零、变动中的人类肉体状态。"], ["如果把“五蕴”当成我，通常会出现什么幻觉？", "认为在肉体痛苦时，有一个具体的“我”在痛。"],["真正的“放下家人”指的是什么？", "放下对家人的“执着”，而非放弃对家人的“关怀”。"],["修行为什么要先“自度”再“利他？", "防止自己没站稳就被卷入他人的痛苦，导致伤心退转。"],];
+
+    const anchor = document.getElementById('flashcards-anchor');
+    cardCollection.forEach((item, index) => {
+        const slideNum = index + 1;
+        const pageDiv = document.createElement('div');
+        pageDiv.className = 'slide-page';
+        pageDiv.id = 'slide-' + slideNum;
+        pageDiv.innerHTML = `
+            <div class="page-header">
+                <div class="header-title">实证参究 · 每日一觉</div>
+                <div class="header-index">${slideNum} / ${cardCollection.length}</div>
+            </div>
+            <div class="center-wrapper">
+                <div class="interactive-flashcard" onclick="this.classList.toggle('revealed')">
+                    <div class="tape-deco"></div>
+                    <span class="q-indicator">【 参 究 】</span>
+                    <p class="question-box">${item[0]}</p>
+                    <div class="answer-box">${item[1]}</div>
+                    <p class="hint-text">点击卡片 启照真相</p>
+                </div>
+            </div>
+        `;
+        anchor.appendChild(pageDiv);
+    });
+
+    let activeSlideIndex = 0;
+    const totalPagesCount = cardCollection.length + 1;
+
+    function goToSlide(targetIdx) {
+        if (targetIdx < 0 || targetIdx >= totalPagesCount) return;
+        
+        document.getElementById('slide-' + activeSlideIndex).classList.remove('active');
+        const activeCard = document.querySelector('#slide-' + activeSlideIndex + ' .interactive-flashcard');
+        if (activeCard) activeCard.classList.remove('revealed');
+
+        document.getElementById('slide-' + targetIdx).classList.add('active');
+        activeSlideIndex = targetIdx;
+    }
+
+    function nextSlide() { goToSlide(activeSlideIndex + 1); }
+    function prevSlide() { goToSlide(activeSlideIndex - 1); }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+        if (e.key === 'ArrowLeft') prevSlide();
+    });
+</script>
+
+</body>
+</html>
